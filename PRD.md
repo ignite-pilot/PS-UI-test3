@@ -1,0 +1,40 @@
+- Plant Simulation Frame
+	- 이 Project는 Plant Simulation UI Project입니다.
+	- 고객용 서비스이기 때문에 디자인은 이쁘고 깔끔하게 해 주세요.
+	- 화면 구성은 아래와 같습니다.
+		- 상단 메뉴바 : Frame에서 사용할 수 있는 Component의 Icon이 위치합니다.
+		- 왼쪽 메뉴바 : 트리 구조로 표시가 되며, 복수개의 Frame과 그에 속한 Component를 트리 구조로 표시합니다.
+		- Main 화면 : Frame 화면을 노출합니다.  여러개 Frame을 열었을 경우에는 Frame 화면 상위에 Tab 구성으로 Frame들을 노출합니다.
+	- 상단 메뉴바
+		- 구성 Component
+			- 원 : 원 모양 도형. 선택후 사이즈를 늘릴수 있으며 타원형으로도 만들수 있습니다.
+			- 삼각형 : 삼각형 도형. 선택후 사이즈와 모양을 조절할 수 있습니다.
+			- 사각형 : 사각형 도형. 선택후 사이즈와 모양을 조절할 수 있습니다.
+			- 연결선 : 다른 Component 사이를 연결합니다.
+		- Component를 하나 선택하고, Frame에 마우스를 클릭하거나 Drag&Drop하면 Frame에 해당 Component가 표시 됩니다. 
+	- 왼쪽 메뉴바
+			- 최상단에는 "Frames"라는 노드가 존재를 하며, 마우스 오른쪽 버튼을 클릭하면 아래 Context 메뉴가 노출됩니다.
+				- Context Menu
+					- Create Frame : 히위에 새로은 Frame을 생성합니다.
+					- Rename Frame : Frame의 이름을 바꿉니다.
+			- Frame을 생성하면, Main 화면에 WebGL로 Frame을 생성합니다.
+			- Frame은 아래의 Context Menu를 가집니다.
+				- Rename Frame : Frame의 이름을 바꿉니다.
+				- Delete Frame : 해당 Frame을 삭제합니다.
+			- Frame에 Component를 추가하면, Frame 하위에 생성된 Component 노드가 생깁니다.
+			- Frame 노드를 클릭하면, Main 노트에 해당 Frame을 열고 정보를 불러와서 내용을 보여줍니다.
+			- Component Node는 아래 Context Menu를 가집니다.
+				- Rename Component : Component 이름을 변경합니다.
+				- Delete Component : Component를 삭제합니다.
+	- Main 화면
+		- Tab으로 화면을 구성하며, Tab 이름은 Frame name을 표시합니다.
+		- 마우스로 Tab간에 위치 변경이 가능하며, Tab 삭제도 가능합니다.
+		- Frame화면은 WebGL 2D 화면으로 구현을 해 주세요.
+		- Frame내에서는 아래에 조작이 가능합니다.
+			- 상단 메뉴바로 Component 배치하기
+			- Component 선택 후, 위치 이동하기
+			- Component 선택 후, 사이즈 조절하기
+			- Compoent 오른쪽 마우스 클릭
+				- Rename Component
+				- Delete Component
+			- Frame 영역 자체 확대/축소

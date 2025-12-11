@@ -1,0 +1,33 @@
+.frame-view {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background-color: #fafafa;
+}
+
+.frame-view-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #ff4444;
+}
+
+.placement-hint {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(74, 144, 226, 0.9);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.context-menu-overlay {
+  pointer-events: auto;
+}
+

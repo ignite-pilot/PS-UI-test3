@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend
+    ports:
+      - "8601:8601"
+    environment:
+      - PHASE=local
+      - FRONTEND_DOMAIN=http://localhost:8600
+      - BACKEND_DOMAIN=http://localhost:8601
+      - LOG_LEVEL=DEBUG
+      - DB_HOST=aidev-pgvector-dev.crkgaskg6o61.ap-northeast-2.rds.amazonaws.com
+      - DB_USER=postgres
+      - DB_PASSWORD=vmcMrs75!KZHk2johkRR:]wL
+      - DB_PORT=5432
+      - DB_NAME=PS-UI-test3
+    volumes:
+      - ./backend:/app/backend
+      - ./config:/app/config
+    command: python run.py
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8600:8600"
+    environment:
+      - REACT_APP_BACKEND_URL=http://localhost:8601
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
