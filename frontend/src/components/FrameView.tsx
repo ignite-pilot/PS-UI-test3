@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { Raycaster, Vector2, Shape, ExtrudeGeometry, CircleGeometry, ShapeGeometry } from 'three';
+import { Raycaster, Vector2, Shape, ExtrudeGeometry, CircleGeometry, ShapeGeometry, Vector3, BufferGeometry, Float32BufferAttribute, LineBasicMaterial, Line, LineSegments } from 'three';
 import { useFrames } from '../contexts/FrameContext';
 import { ComponentType } from './TopMenuBar';
 import ComponentRenderer from './ComponentRenderer';
@@ -25,8 +25,25 @@ const FrameView: React.FC<FrameViewProps> = ({
   const frame = frames.find(f => f.id === frameId);
   const containerRef = useRef<HTMLDivElement>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; componentId: number } | null>(null);
+  const [connectionSourceId, setConnectionSourceId] = useState<number | null>(null);
   const cameraRef = useRef<any>(null);
   const controlsRef = useRef<any>(null);
+
+  // ESC 키로 연결선 모드 해제
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedComponent === 'connection') {
+        setConnectionSourceId(null);
+        setSelectedComponentId(null);
+        onComponentSelect(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedComponent, onComponentSelect]);
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
@@ -59,7 +76,6 @@ const FrameView: React.FC<FrameViewProps> = ({
             controlsRef.current.update();
           }
           
-          console.log('Zoom updated:', newZoom, 'delta:', delta, 'isTouchpad:', isTouchpad, 'camera.zoom:', cameraRef.current.zoom);
         }
       }
     };
@@ -91,16 +107,21 @@ const FrameView: React.FC<FrameViewProps> = ({
   }, []);
 
   const handleCanvasClick = (event: React.MouseEvent) => {
-    console.log('=== handleCanvasClick called ===');
-    console.log('selectedComponent:', selectedComponent);
-    console.log('Event:', event);
+    // 연결선 모드에서는 Canvas 클릭 무시 (mesh 클릭만 처리)
+    if (selectedComponent === 'connection') {
+      // 컴포넌트가 아닌 곳을 클릭하면 첫 번째 선택만 취소 (모드는 유지)
+      if (connectionSourceId !== null) {
+        setConnectionSourceId(null);
+        setSelectedComponentId(null);
+      }
+      return;
+    }
     
-    if (selectedComponent && selectedComponent !== 'connection') {
-      console.log('Creating component:', selectedComponent);
+    // 연결선 모드가 아닐 때만 컴포넌트 생성 처리
+    if (selectedComponent === 'circle' || selectedComponent === 'triangle' || selectedComponent === 'rectangle') {
       const rect = event.currentTarget.getBoundingClientRect();
       
       if (!cameraRef.current) {
-        console.error('Camera ref is not available');
         return;
       }
       
@@ -143,17 +164,6 @@ const FrameView: React.FC<FrameViewProps> = ({
       // 카메라 뷰 크기가 10x10이므로 0.01 크기가 적절함
       const componentSize = 0.01; // 적절한 고정 크기
 
-      console.log('=== Click Debug ===');
-      console.log('Click position:', { clientX: event.clientX, clientY: event.clientY });
-      console.log('Canvas rect:', { left: rect.left, top: rect.top, width: rect.width, height: rect.height });
-      console.log('NDC:', { mouseX: mouseX.toFixed(3), mouseY: mouseY.toFixed(3) });
-      console.log('Camera target (pan):', { x: cameraTargetX, y: cameraTargetY });
-      console.log('Camera zoom:', currentZoom);
-      console.log('Base bounds:', { left: baseLeft, right: baseRight, top: baseTop, bottom: baseBottom });
-      console.log('View size (with zoom):', { width: viewWidth.toFixed(3), height: viewHeight.toFixed(3) });
-      console.log('World position:', { x: worldX.toFixed(3), y: worldY.toFixed(3) });
-      console.log('===================');
-
       createComponent({
         frame_id: frameId,
         name: `${selectedComponent}-${Date.now()}`,
@@ -172,6 +182,72 @@ const FrameView: React.FC<FrameViewProps> = ({
   const handleComponentRightClick = (componentId: number, event: React.MouseEvent) => {
     event.preventDefault();
     // Context menu will be handled by ComponentRenderer
+  };
+
+  const handleComponentClick = (componentId: number, e?: any) => {
+    console.log('handleComponentClick called', { componentId, selectedComponent, connectionSourceId });
+    
+    // 이벤트 전파 중지
+    if (e) {
+      e.stopPropagation();
+    }
+    
+    // 연결선 모드일 때만 처리
+    if (selectedComponent === 'connection') {
+      console.log('Connection mode active');
+      if (connectionSourceId === null) {
+        // 첫 번째 컴포넌트 선택 (연결선 모드는 유지)
+        setConnectionSourceId(componentId);
+        setSelectedComponentId(componentId);
+        // 연결선 모드는 해제하지 않음
+      } else if (connectionSourceId === componentId) {
+        // 같은 컴포넌트를 다시 클릭하면 첫 번째 선택 취소 (연결선 모드는 유지)
+        setConnectionSourceId(null);
+        setSelectedComponentId(null);
+      } else {
+        // 두 번째 컴포넌트 선택 - 연결선 생성
+        const sourceComponent = frame?.components.find(c => c.id === connectionSourceId);
+        const targetComponent = frame?.components.find(c => c.id === componentId);
+        
+        if (sourceComponent && targetComponent) {
+          console.log('Creating connection', { sourceComponent, targetComponent });
+          // 연결선 생성 (시작점과 끝점의 중간 위치에 생성)
+          const midX = (sourceComponent.x + targetComponent.x) / 2;
+          const midY = (sourceComponent.y + targetComponent.y) / 2;
+          const distance = Math.sqrt(
+            Math.pow(targetComponent.x - sourceComponent.x, 2) + 
+            Math.pow(targetComponent.y - sourceComponent.y, 2)
+          );
+          
+          console.log('Connection data', { midX, midY, distance, sourceId: connectionSourceId, targetId: componentId });
+          
+          createComponent({
+            frame_id: frameId,
+            name: `connection-${Date.now()}`,
+            type: 'connection',
+            x: midX,
+            y: midY,
+            width: distance,
+            height: 0,
+            properties: {
+              sourceId: connectionSourceId,
+              targetId: componentId,
+              sourceX: sourceComponent.x,
+              sourceY: sourceComponent.y,
+              targetX: targetComponent.x,
+              targetY: targetComponent.y,
+            },
+          });
+          
+          console.log('Connection created');
+          
+          // 연결 모드 종료
+          setConnectionSourceId(null);
+          setSelectedComponentId(null);
+          onComponentSelect(null);
+        }
+      }
+    }
   };
 
   if (!frame) {
@@ -206,29 +282,102 @@ const FrameView: React.FC<FrameViewProps> = ({
           orthoCamera.top = 5;
           orthoCamera.bottom = -5;
           state.camera.updateProjectionMatrix();
-          console.log('Canvas created, camera:', state.camera);
-          console.log('Camera bounds:', { left: orthoCamera.left, right: orthoCamera.right, top: orthoCamera.top, bottom: orthoCamera.bottom });
-          console.log('Camera zoom:', state.camera.zoom);
-          console.log('Camera near/far:', state.camera.near, state.camera.far);
-          console.log('Frame components:', frame.components);
         }}
       >
         <CameraZoomController cameraRef={cameraRef} />
         <AdaptiveGrid />
         <ambientLight intensity={1} />
+        {/* 연결선 렌더링 */}
+        {frame?.components
+          ?.filter(c => c.type === 'connection')
+          .map((connection) => {
+            const sourceId = connection.properties?.sourceId;
+            const targetId = connection.properties?.targetId;
+            const sourceComponent = frame?.components.find(c => c.id === sourceId);
+            const targetComponent = frame?.components.find(c => c.id === targetId);
+            
+            console.log('Connection render', { connection, sourceId, targetId, sourceComponent, targetComponent });
+            
+            if (!sourceComponent || !targetComponent) {
+              console.log('Missing source or target component');
+              return null;
+            }
+            
+            // 컴포넌트 크기 계산
+            const sourceSize = Math.max(sourceComponent.width || 0.01, sourceComponent.height || 0.01);
+            const targetSize = Math.max(targetComponent.width || 0.01, targetComponent.height || 0.01);
+            const sourceRadius = sourceSize / 2;
+            const targetRadius = targetSize / 2;
+            
+            // 연결선 방향 계산
+            const dx = targetComponent.x - sourceComponent.x;
+            const dy = targetComponent.y - sourceComponent.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx);
+            
+            // 시작점과 끝점을 컴포넌트 가장자리에서 시작
+            const startX = sourceComponent.x + Math.cos(angle) * sourceRadius;
+            const startY = sourceComponent.y + Math.sin(angle) * sourceRadius;
+            const endX = targetComponent.x - Math.cos(angle) * targetRadius;
+            const endY = targetComponent.y - Math.sin(angle) * targetRadius;
+            
+            // 화살표 크기
+            const arrowSize = 0.05;
+            const arrowOffset = 0.08; // 타겟에서 떨어진 거리
+            
+            // 화살표 위치 (타겟에서 약간 뒤로)
+            const arrowX = endX - Math.cos(angle) * arrowOffset;
+            const arrowY = endY - Math.sin(angle) * arrowOffset;
+            
+            // 선을 위한 points 배열 생성
+            const lineEndX = endX - Math.cos(angle) * arrowOffset;
+            const lineEndY = endY - Math.sin(angle) * arrowOffset;
+            const points = [
+              new Vector3(startX, startY, 2.0), // Z 위치를 도형보다 앞에
+              new Vector3(lineEndX, lineEndY, 2.0)
+            ];
+            
+            // BufferGeometry 생성
+            const lineGeometry = new BufferGeometry();
+            lineGeometry.setAttribute('position', new Float32BufferAttribute(points.flatMap(p => [p.x, p.y, p.z]), 3));
+            
+            // Line 객체 생성
+            const lineMaterial = new LineBasicMaterial({ color: '#ff0000', linewidth: 5 });
+            const line = new Line(lineGeometry, lineMaterial);
+            
+            // 화살표 geometry 생성 (삼각형)
+            const arrowShape = new Shape();
+            arrowShape.moveTo(0, arrowSize / 2);
+            arrowShape.lineTo(arrowSize, 0);
+            arrowShape.lineTo(0, -arrowSize / 2);
+            arrowShape.lineTo(0, arrowSize / 2);
+            const arrowGeometry = new ShapeGeometry(arrowShape);
+            
+            return (
+              <group key={`connection-${connection.id}`}>
+                {/* 연결선 */}
+                <primitive object={line} />
+                {/* 화살표 */}
+                <mesh
+                  position={[arrowX, arrowY, 2.0]}
+                  rotation={[0, 0, angle]}
+                  geometry={arrowGeometry}
+                >
+                  <meshBasicMaterial color="#ff0000" side={2} />
+                </mesh>
+              </group>
+            );
+          })}
         {/* 도형 렌더링 */}
         {/* 문제 분석: 격자는 보이는데 mesh가 안 보임 */}
         {/* 격자는 primitive로 렌더링, mesh는 일반 JSX로 렌더링 */}
-        {/* 도형 렌더링 - 크기를 충분히 크게 하고 Z 위치를 격자보다 확실히 앞에 */}
+        {/* 도형 렌더링 */}
         {(() => {
-          console.log('Checking frame.components:', frame, 'components:', frame?.components, 'length:', frame?.components?.length);
           if (!frame || !frame.components || frame.components.length === 0) {
-            console.log('No components to render - frame:', !!frame, 'components:', frame?.components);
             return null;
           }
           
           const validComponents = frame.components.filter(c => c.type !== 'connection');
-          console.log('Valid components to render:', validComponents.length, validComponents);
           
           // 카메라 줌 자동 조정 로직 제거 - 사용자가 수동으로 줌을 조정할 수 있도록 함
           // (렌더링마다 실행되어 도형 클릭 시 불필요한 줌 변경 발생 방지)
@@ -245,14 +394,11 @@ const FrameView: React.FC<FrameViewProps> = ({
             const calculatedSize = Math.max(originalWidth, originalHeight);
             const size = Math.min(calculatedSize, maxSize); // 최대만 제한
             
-            console.log('Calculated Size:', calculatedSize);
-            console.log('Final Size:', size);
-            console.log('Radius (for circle):', size / 2);
-            console.log('===========================');
-            
-            // 타입별 색상 설정 (선택된 경우 파란색)
+            // 타입별 색상 설정 (선택된 경우 파란색, 연결선 모드에서 첫 번째 선택된 경우 초록색)
             let color = '#ff0000'; // 기본 빨간색
-            if (selectedComponentId === component.id) {
+            if (connectionSourceId === component.id) {
+              color = '#00ff00'; // 연결선 모드에서 첫 번째 선택된 경우 초록색
+            } else if (selectedComponentId === component.id) {
               color = '#0000ff'; // 선택된 경우 파란색
             } else {
               // 타입별로 다른 색상
@@ -275,33 +421,12 @@ const FrameView: React.FC<FrameViewProps> = ({
             const x = component.x || 0;
             const y = component.y || 0;
             
-            console.log('Rendering component:', {
-              id: component.id,
-              type: component.type,
-              x: x.toFixed(3),
-              y: y.toFixed(3),
-              z: 1.0,
-              size: size.toFixed(3),
-              radius: (size / 2).toFixed(3),
-              originalSize: [originalWidth.toFixed(3), originalHeight.toFixed(3)],
-              color: color
-            });
-            
             // 격자가 Z=0에 있으므로 도형은 Z=1.0에 위치하여 확실히 앞에 표시
             // 도형 타입에 따라 적절한 geometry 사용
             const radius = size / 2;
             
             // 도형 타입별 렌더링
-            console.log('=== Rendering Debug ===');
-            console.log('Component Type:', component.type);
-            console.log('Is Circle?', component.type === 'circle');
-            console.log('Radius:', radius);
-            console.log('Position:', [x, y, 1.0]);
-            console.log('Color:', color);
-            
             if (component.type === 'circle') {
-              console.log('RENDERING CIRCLE with circleGeometry');
-              console.log('Circle radius:', radius);
               // 원형 geometry 사용 - React Three Fiber의 JSX 컴포넌트 방식 사용
               return (
                 <mesh 
@@ -310,10 +435,15 @@ const FrameView: React.FC<FrameViewProps> = ({
                   visible={true} 
                   renderOrder={1000} 
                   frustumCulled={false}
-                  onUpdate={(self) => {
-                    console.log('Mesh updated - Geometry type:', self.geometry?.type);
-                    console.log('Mesh updated - Geometry:', self.geometry);
-                    console.log('Mesh updated - Material:', self.material);
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    console.log('Circle clicked', component.id);
+                    handleComponentClick(component.id, e);
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('Circle onClick', component.id);
+                    handleComponentClick(component.id, e);
                   }}
                 >
                   <circleGeometry args={[radius, 64]} />
@@ -346,6 +476,16 @@ const FrameView: React.FC<FrameViewProps> = ({
                   renderOrder={1000} 
                   frustumCulled={false}
                   geometry={triangleGeometry}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    console.log('Triangle clicked', component.id);
+                    handleComponentClick(component.id, e);
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('Triangle onClick', component.id);
+                    handleComponentClick(component.id, e);
+                  }}
                 >
                   <meshBasicMaterial 
                     color={color} 
@@ -366,6 +506,16 @@ const FrameView: React.FC<FrameViewProps> = ({
                   visible={true} 
                   renderOrder={1000} 
                   frustumCulled={false}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    console.log('Rectangle clicked', component.id);
+                    handleComponentClick(component.id, e);
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('Rectangle onClick', component.id);
+                    handleComponentClick(component.id, e);
+                  }}
                 >
                   <planeGeometry args={[size, size]} />
                   <meshBasicMaterial 
@@ -388,9 +538,10 @@ const FrameView: React.FC<FrameViewProps> = ({
             <meshBasicMaterial color="#00ff00" depthTest={false} />
           </mesh>
         ))} */}
-        <OrbitControlsWrapper 
+        <OrbitControlsWrapper
           controlsRef={controlsRef}
           cameraRef={cameraRef}
+          enablePan={selectedComponent !== 'connection'}
         />
       </Canvas>
       {selectedComponent && (
