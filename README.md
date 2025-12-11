@@ -30,32 +30,50 @@ Plant Simulation UI는 WebGL을 사용한 2D 플랜트 시뮬레이션 프레임
 - Node.js 18 이상
 - PostgreSQL 접근 권한
 
-### Backend 설정
+### 통합 서비스 실행 (권장)
+
+프론트엔드와 백엔드를 하나의 서비스로 실행:
 
 ```bash
+# 1. 프론트엔드 빌드
+./build.sh
+# 또는 수동으로:
+# cd frontend && npm install && npm run build && cd ..
+
+# 2. 데이터베이스 마이그레이션 (처음 한 번만)
 cd backend
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
+python migrate_add_projects.py  # 프로젝트 테이블 생성
 
-# 데이터베이스 생성
-python create_db.py
-
-# 서버 실행
+# 3. 서버 실행 (프론트엔드와 백엔드 모두 서빙)
 python run.py
 ```
 
-Backend는 `http://localhost:8601`에서 실행됩니다.
+애플리케이션은 `http://localhost:8601`에서 실행됩니다.
 
-### Frontend 설정
+### 개발 모드 실행 (프론트엔드와 백엔드 분리)
 
+개발 중에는 프론트엔드와 백엔드를 별도로 실행할 수 있습니다:
+
+**Backend 실행:**
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python run.py
+```
+
+**Frontend 실행:**
 ```bash
 cd frontend
 npm install
 npm start
 ```
 
-Frontend는 `http://localhost:8600`에서 실행됩니다.
+Backend는 `http://localhost:8601`, Frontend는 `http://localhost:8600`에서 실행됩니다.
 
 ## 프로젝트 구조
 

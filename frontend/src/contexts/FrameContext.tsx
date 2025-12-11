@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Frame, Component } from '../types';
 import * as api from '../services/api';
+import { useProject } from './ProjectContext';
 
 interface FrameContextType {
   frames: Frame[];
@@ -24,6 +25,7 @@ interface FrameContextType {
 const FrameContext = createContext<FrameContextType | undefined>(undefined);
 
 export const FrameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { currentProject } = useProject();
   const [frames, setFrames] = useState<Frame[]>([]);
   const [activeFrameId, setActiveFrameId] = useState<number | null>(null);
   const [openFrameIds, setOpenFrameIds] = useState<number[]>([]);
@@ -31,16 +33,22 @@ export const FrameProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [loading, setLoading] = useState(false);
 
   const refreshFrames = useCallback(async () => {
+    if (!currentProject) {
+      setFrames([]);
+      setActiveFrameId(null);
+      setOpenFrameIds([]);
+      return;
+    }
     setLoading(true);
     try {
-      const fetchedFrames = await api.getFrames();
+      const fetchedFrames = await api.getFrames(currentProject.id);
       setFrames(fetchedFrames);
     } catch (error) {
       console.error('Failed to fetch frames:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentProject]);
 
   useEffect(() => {
     refreshFrames();
@@ -69,10 +77,13 @@ export const FrameProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [openFrameIds, activeFrameId]);
 
   const createFrame = useCallback(async (name: string): Promise<Frame> => {
-    const newFrame = await api.createFrame(name);
+    if (!currentProject) {
+      throw new Error('No project selected');
+    }
+    const newFrame = await api.createFrame(name, currentProject.id);
     await refreshFrames();
     return newFrame;
-  }, [refreshFrames]);
+  }, [refreshFrames, currentProject]);
 
   const updateFrame = useCallback(async (id: number, name: string): Promise<void> => {
     await api.updateFrame(id, name);

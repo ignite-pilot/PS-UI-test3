@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useProject } from '../contexts/ProjectContext';
 import './TopMenuBar.css';
 
 export type ComponentType = 'circle' | 'triangle' | 'rectangle' | 'connection';
@@ -9,6 +10,8 @@ interface TopMenuBarProps {
 }
 
 const TopMenuBar: React.FC<TopMenuBarProps> = ({ selectedComponent, onComponentSelect }) => {
+  const { currentProject } = useProject();
+
   const handleClick = (type: ComponentType) => {
     console.log('=== TopMenuBar handleClick ===', { type, currentSelected: selectedComponent });
     if (selectedComponent === type) {
@@ -22,7 +25,9 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({ selectedComponent, onComponentS
 
   return (
     <div className="top-menu-bar">
-      <div className="menu-title">Components</div>
+      <div className="top-menu-bar-left">
+        <div className="project-name">{currentProject?.name || 'No Project'}</div>
+      </div>
       <div className="component-icons">
         <button
           className={`icon-button ${selectedComponent === null ? 'active' : ''}`}

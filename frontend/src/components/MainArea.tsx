@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useFrames } from '../contexts/FrameContext';
-import TopMenuBar, { ComponentType } from './TopMenuBar';
+import { ComponentType } from './TopMenuBar';
 import FrameView from './FrameView';
 import './MainArea.css';
 
-const MainArea: React.FC = () => {
+interface MainAreaProps {
+  selectedComponent: ComponentType | null;
+  onComponentSelect: (type: ComponentType | null) => void;
+}
+
+const MainArea: React.FC<MainAreaProps> = ({ selectedComponent, onComponentSelect }) => {
   const { frames, openFrameIds, activeFrameId, setActiveFrame, closeFrame } = useFrames();
-  const [selectedComponent, setSelectedComponent] = useState<ComponentType | null>(null);
 
   const handleTabClick = (frameId: number) => {
     setActiveFrame(frameId);
@@ -19,10 +23,6 @@ const MainArea: React.FC = () => {
 
   return (
     <div className="main-area">
-      <TopMenuBar
-        selectedComponent={selectedComponent}
-        onComponentSelect={setSelectedComponent}
-      />
       <div className="tabs-container">
         {openFrameIds.map((frameId) => (
           <div
@@ -45,7 +45,7 @@ const MainArea: React.FC = () => {
           <FrameView
             frameId={activeFrameId}
             selectedComponent={selectedComponent}
-            onComponentSelect={setSelectedComponent}
+            onComponentSelect={onComponentSelect}
           />
         )}
         {!activeFrameId && (

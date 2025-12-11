@@ -7,15 +7,29 @@ from sqlalchemy.sql import func
 from app.database import Base
 
 
-class Frame(Base):
-    """Frame model"""
-    __tablename__ = "frames"
+class Project(Base):
+    """Project model"""
+    __tablename__ = "projects"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())  # pylint: disable=not-callable
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())  # pylint: disable=not-callable
 
+    frames = relationship("Frame", back_populates="project", cascade="all, delete-orphan")
+
+
+class Frame(Base):
+    """Frame model"""
+    __tablename__ = "frames"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False, index=True)
+    name = Column(String, nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())  # pylint: disable=not-callable
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())  # pylint: disable=not-callable
+
+    project = relationship("Project", back_populates="frames")
     components = relationship("Component", back_populates="frame", cascade="all, delete-orphan")
 
 

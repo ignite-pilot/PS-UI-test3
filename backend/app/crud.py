@@ -6,10 +6,61 @@ from app import models, schemas
 from typing import List, Optional
 
 
+# Project CRUD
+def create_project(db: Session, project: schemas.ProjectCreate) -> models.Project:
+    """Create a new project"""
+    try:
+        db_project = models.Project(name=project.name)
+        db.add(db_project)
+        db.commit()
+        db.refresh(db_project)
+        return db_project
+    except Exception as e:
+        db.rollback()
+        raise
+
+
+def get_project(db: Session, project_id: int) -> Optional[models.Project]:
+    """Get project by ID"""
+    return db.query(models.Project).filter(models.Project.id == project_id).first()
+
+
+def get_projects(db: Session, skip: int = 0, limit: int = 100) -> List[models.Project]:
+    """Get all projects"""
+    return db.query(models.Project).offset(skip).limit(limit).all()
+
+
+def update_project(
+    db: Session, project_id: int, project_update: schemas.ProjectUpdate
+) -> Optional[models.Project]:
+    """Update project"""
+    db_project = get_project(db, project_id)
+    if not db_project:
+        return None
+
+    if project_update.name is not None:
+        db_project.name = project_update.name
+
+    db.commit()
+    db.refresh(db_project)
+    return db_project
+
+
+def delete_project(db: Session, project_id: int) -> bool:
+    """Delete project"""
+    db_project = get_project(db, project_id)
+    if not db_project:
+        return False
+
+    db.delete(db_project)
+    db.commit()
+    return True
+
+
 # Frame CRUD
 def create_frame(db: Session, frame: schemas.FrameCreate) -> models.Frame:
     """Create a new frame"""
-    db_frame = models.Frame(name=frame.name)
+    db_frame = models.Frame(name=frame.name, project_id=frame.project_id)
     db.add(db_frame)
     db.commit()
     db.refresh(db_frame)
@@ -21,9 +72,12 @@ def get_frame(db: Session, frame_id: int) -> Optional[models.Frame]:
     return db.query(models.Frame).filter(models.Frame.id == frame_id).first()
 
 
-def get_frames(db: Session, skip: int = 0, limit: int = 100) -> List[models.Frame]:
-    """Get all frames"""
-    return db.query(models.Frame).offset(skip).limit(limit).all()
+def get_frames(db: Session, skip: int = 0, limit: int = 100, project_id: Optional[int] = None) -> List[models.Frame]:
+    """Get all frames, optionally filtered by project_id"""
+    query = db.query(models.Frame)
+    if project_id is not None:
+        query = query.filter(models.Frame.project_id == project_id)
+    return query.offset(skip).limit(limit).all()
 
 
 def update_frame(

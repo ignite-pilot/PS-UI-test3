@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useEffect } from 'react';
 import { OrbitControls } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 

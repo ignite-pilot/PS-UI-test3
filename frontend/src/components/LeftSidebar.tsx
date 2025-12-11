@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { ContextMenu, ContextMenuTrigger, MenuItem } from './ContextMenu';
 import { useFrames } from '../contexts/FrameContext';
+import { useProject } from '../contexts/ProjectContext';
 import './LeftSidebar.css';
 
 const LeftSidebar: React.FC = () => {
+  const { currentProject } = useProject();
   const {
     frames,
     activeFrameId,
@@ -17,6 +19,10 @@ const LeftSidebar: React.FC = () => {
   const [editName, setEditName] = useState('');
 
   const handleCreateFrame = async () => {
+    if (!currentProject) {
+      alert('프로젝트를 먼저 선택하거나 생성해주세요.');
+      return;
+    }
     const name = prompt('Enter frame name:');
     if (name) {
       await createFrame(name);

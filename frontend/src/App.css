@@ -4,6 +4,29 @@
   height: 100vh;
   width: 100vw;
   background-color: #f5f5f5;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #000000;
+}
+
+.app-top-tabs {
+  width: 100%;
+  background-color: #2d2d2d;
+  border-bottom: 1px solid #000000;
+  flex-shrink: 0;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  min-height: 32px;
+}
+
+.app-header {
+  width: 100%;
+  background-color: #ffffff;
+  border-bottom: 1px solid #000000;
+  flex-shrink: 0;
 }
 
 .app-content {

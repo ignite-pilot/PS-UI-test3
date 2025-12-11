@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
-import { Raycaster, Vector2, Shape, ExtrudeGeometry, CircleGeometry, ShapeGeometry, Vector3, BufferGeometry, Float32BufferAttribute, LineBasicMaterial, Line, LineSegments } from 'three';
+import React, { useEffect, useRef, useState } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { Shape, ShapeGeometry, Vector3, BufferGeometry, Float32BufferAttribute, LineBasicMaterial, Line } from 'three';
 import { useFrames } from '../contexts/FrameContext';
 import { ComponentType } from './TopMenuBar';
-import ComponentRenderer from './ComponentRenderer';
 import { ContextMenu, MenuItem } from './ContextMenu';
 import OrbitControlsWrapper from './OrbitControlsWrapper';
 import AdaptiveGrid from './AdaptiveGrid';
@@ -66,7 +65,7 @@ const FrameView: React.FC<FrameViewProps> = ({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [selectedComponent, onComponentSelect]);
+  }, [selectedComponent, onComponentSelect, setSelectedComponentId]);
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
@@ -153,7 +152,6 @@ const FrameView: React.FC<FrameViewProps> = ({
       camera.updateProjectionMatrix();
       
       // 카메라의 기본 left/right/top/bottom 값 (줌 적용 전)
-      const orthoCamera = camera as any;
       const baseLeft = -5;
       const baseRight = 5;
       const baseTop = 5;
@@ -200,10 +198,7 @@ const FrameView: React.FC<FrameViewProps> = ({
     }
   };
 
-  const handleComponentRightClick = (componentId: number, event: React.MouseEvent) => {
-    event.preventDefault();
-    // Context menu will be handled by ComponentRenderer
-  };
+  // Context menu is handled by ComponentRenderer
 
   const handleComponentClick = (componentId: number, e?: any) => {
     // 이벤트 전파 중지 (Canvas 클릭 이벤트가 발생하지 않도록)
@@ -266,10 +261,11 @@ const FrameView: React.FC<FrameViewProps> = ({
           // 연결선 생성 (시작점과 끝점의 중간 위치에 생성)
           const midX = (sourceComponent.x + targetComponent.x) / 2;
           const midY = (sourceComponent.y + targetComponent.y) / 2;
-          const distance = Math.sqrt(
-            Math.pow(targetComponent.x - sourceComponent.x, 2) + 
-            Math.pow(targetComponent.y - sourceComponent.y, 2)
-          );
+          // Calculate distance for connection width if needed
+          // const distance = Math.sqrt(
+          //   Math.pow(targetComponent.x - sourceComponent.x, 2) + 
+          //   Math.pow(targetComponent.y - sourceComponent.y, 2)
+          // );
           
           createComponent({
             frame_id: frameId,
@@ -277,7 +273,10 @@ const FrameView: React.FC<FrameViewProps> = ({
             type: 'connection',
             x: midX,
             y: midY,
-            width: distance,
+            width: Math.sqrt(
+              Math.pow(targetComponent.x - sourceComponent.x, 2) + 
+              Math.pow(targetComponent.y - sourceComponent.y, 2)
+            ),
             height: 0,
             properties: {
               sourceId: currentConnectionSourceId,
@@ -323,7 +322,6 @@ const FrameView: React.FC<FrameViewProps> = ({
           const camera = cameraRef.current;
           const currentZoom = camera.zoom || 50;
           camera.updateProjectionMatrix();
-          const orthoCamera = camera as any;
           const baseLeft = -5;
           const baseRight = 5;
           const baseTop = 5;
@@ -462,7 +460,8 @@ const FrameView: React.FC<FrameViewProps> = ({
             // 연결선 방향 계산
             const dx = targetComponent.x - sourceComponent.x;
             const dy = targetComponent.y - sourceComponent.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+            // distance is calculated but not used directly - kept for potential future use
+            // const distance = Math.sqrt(dx * dx + dy * dy);
             const angle = Math.atan2(dy, dx);
             
             // 시작점과 끝점을 컴포넌트 가장자리에서 시작

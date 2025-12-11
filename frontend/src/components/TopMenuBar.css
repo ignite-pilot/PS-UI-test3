@@ -1,18 +1,23 @@
 .top-menu-bar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 12px 20px;
   background-color: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid #000000;
   z-index: 100;
 }
 
-.menu-title {
+.top-menu-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.project-name {
   font-weight: 600;
   font-size: 14px;
   color: #333;
-  margin-right: 20px;
 }
 
 .component-icons {

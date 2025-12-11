@@ -2,7 +2,7 @@
 Pydantic schemas for API requests/responses
 """
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from pydantic import BaseModel, ConfigDict
 
@@ -50,7 +50,7 @@ class FrameBase(BaseModel):
 
 class FrameCreate(FrameBase):
     """Frame creation schema"""
-    pass
+    project_id: int
 
 
 class FrameUpdate(BaseModel):
@@ -63,7 +63,34 @@ class FrameResponse(FrameBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    project_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
     components: list[ComponentResponse] = []
+
+
+# Project schemas
+class ProjectBase(BaseModel):
+    """Base project schema"""
+    name: str
+
+
+class ProjectCreate(ProjectBase):
+    """Project creation schema"""
+    pass
+
+
+class ProjectUpdate(BaseModel):
+    """Project update schema"""
+    name: Optional[str] = None
+
+
+class ProjectResponse(ProjectBase):
+    """Project response schema"""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    frames: Optional[List[FrameResponse]] = None
 
