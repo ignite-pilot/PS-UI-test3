@@ -10,9 +10,12 @@ interface TopMenuBarProps {
 
 const TopMenuBar: React.FC<TopMenuBarProps> = ({ selectedComponent, onComponentSelect }) => {
   const handleClick = (type: ComponentType) => {
+    console.log('=== TopMenuBar handleClick ===', { type, currentSelected: selectedComponent });
     if (selectedComponent === type) {
+      console.log('→ Deselecting component');
       onComponentSelect(null);
     } else {
+      console.log('→ Selecting component:', type);
       onComponentSelect(type);
     }
   };
